@@ -1,6 +1,6 @@
-const CACHE = 'scanner-v3';
+const CACHE = 'scanner-v5';
 const ASSETS = [
-  './', './index.html', './styles.css', './app.js', './manifest.json',
+  './', './index.html', './manifest.json',
   './icon-192.png', './icon-512.png'
 ];
 
