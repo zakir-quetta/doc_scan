@@ -1,92 +1,95 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111827">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Doc Scanner</title>
-  <style>
-    body {
-      font-family: -apple-system, system-ui, sans-serif;
-      margin: 0;
-      padding: 16px;
-      background: #111827;
-      color: #f9fafb;
-      text-align: center;
-    }
-    h1 { font-size: 22px; margin: 8px 0 16px; }
-    button {
-      background: #3b82f6;
-      color: #fff;
-      border: 0;
-      padding: 12px 18px;
-      border-radius: 10px;
-      font-size: 15px;
-      margin: 4px;
-      cursor: pointer;
-    }
-    button:disabled { opacity: 0.5; }
-    #installBtn {
-      background: #10b981;
-      display: none;
-      width: 100%;
-      font-weight: bold;
-    }
-    #installHint {
-      display: none;
-      font-size: 13px;
-      color: #9ca3af;
-      margin-top: 8px;
-    }
-    canvas {
-      max-width: 100%;
-      background: #1f2937;
-      border-radius: 8px;
-      margin: 12px 0;
-      display: block;
-    }
-    #text {
-      text-align: left;
-      background: #1f2937;
-      padding: 12px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      font-size: 13px;
-      min-height: 60px;
-    }
-    input[type=file] {
-      margin: 12px 0;
-      color: #9ca3af;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scanner">
+<title>Doc Scanner</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>📄 Doc Scanner</h1>
 
-  <button id="installBtn">📲 Install App</button>
-  <p id="installHint">
-    To install: tap ⋮ menu → "Install app" (or Share → "Add to Home Screen" on iOS).
-  </p>
+<div id="installBar" class="install-bar hidden">
+  <div class="install-bar-text">
+    <strong>Install Doc Scanner</strong>
+    <span>Faster access · works offline</span>
+  </div>
+  <button id="installBtn" class="btn-primary">Install</button>
+  <button id="installClose" class="icon-btn" aria-label="Dismiss">✕</button>
+</div>
 
-  <input id="file" type="file" accept="image/*" capture="environment">
-  <canvas id="canvas"></canvas>
+<section id="homeScreen" class="screen active">
+  <header class="topbar">
+    <h1 class="logo">Doc Scanner</h1>
+    <button id="themeBtn" class="icon-btn" aria-label="Theme">🌙</button>
+  </header>
 
-  <div>
-    <button id="scan">Scan</button>
-    <button id="ocr">OCR</button>
-    <button id="pdf">PDF</button>
+  <div id="emptyState" class="empty">
+    <div class="empty-art">📄</div>
+    <h2>No documents yet</h2>
+    <p>Tap Scan to capture your first document</p>
   </div>
 
-  <pre id="text"></pre>
+  <ul id="docsList" class="docs-list"></ul>
 
-  <script src="https://docs.opencv.org/4.x/opencv.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="app.js"></script>
+  <div class="fab-row">
+    <button id="pickBtn" class="fab-secondary" aria-label="Pick image">🖼️</button>
+    <button id="scanBtn" class="fab">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      <span>Scan</span>
+    </button>
+  </div>
+</section>
+
+<section id="editorScreen" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" id="editorBack" aria-label="Back">←</button>
+    <h1>Enhance</h1>
+    <button id="editorSave" class="btn-text">Save</button>
+  </header>
+
+  <div class="editor-canvas-wrap">
+    <canvas id="editorCanvas"></canvas>
+  </div>
+
+  <div class="editor-controls">
+    <div class="mode-tabs" role="tablist">
+      <button data-mode="original" class="mode-tab">Original</button>
+      <button data-mode="color" class="mode-tab active">Color</button>
+      <button data-mode="gray" class="mode-tab">Grayscale</button>
+      <button data-mode="bw" class="mode-tab">B&amp;W</button>
+    </div>
+    <button id="rotateBtn" class="btn-secondary wide">↻ Rotate 90°</button>
+  </div>
+</section>
+
+<section id="docScreen" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" id="docBack" aria-label="Back">←</button>
+    <h1 id="docTitle">Document</h1>
+    <button id="docMenu" class="icon-btn" aria-label="Delete">🗑</button>
+  </header>
+
+  <div id="pagesList" class="pages-list"></div>
+
+  <div class="doc-actions">
+    <button id="addPageBtn" class="btn-secondary">+ Add page</button>
+    <button id="exportPdfBtn" class="btn-primary">Export PDF</button>
+  </div>
+</section>
+
+<input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="galleryInput" accept="image/*" hidden>
+
+<script src="https://docs.opencv.org/4.x/opencv.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
