@@ -1,3 +1,37 @@
+// ---------- Install button logic ----------
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+const installHint = document.getElementById('installHint');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-block';
+  installHint.style.display = 'none';
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('Install outcome:', outcome);
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+  console.log('App installed');
+});
+
+// Fallback hint if beforeinstallprompt never fires
+setTimeout(() => {
+  if (installBtn.style.display === 'none') {
+    installHint.style.display = 'block';
+  }
+}, 3000);
+
+// ---------- Scanner logic ----------
 const file = document.getElementById('file');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -62,6 +96,7 @@ document.getElementById('pdf').onclick = () => {
   pdf.save('scan.pdf');
 };
 
+// ---------- Service worker ----------
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
 }
