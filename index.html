@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light dark">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -11,30 +12,37 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Doc Scanner</title>
 <style>
-:root{--bg:#f4f5f7;--surface:#fff;--surface2:#eef1f5;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-hover:#1d4ed8;--danger:#dc2626;--warn:#f59e0b;--ok:#10b981;--star:#f59e0b;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-lg:0 10px 25px rgba(0,0,0,.12);--shadow-xl:0 24px 48px rgba(0,0,0,.18);--radius:14px;--radius-sm:10px}
-[data-theme=dark]{--bg:#0a0f1a;--surface:#141b2d;--surface2:#1e2740;--text:#f1f5f9;--muted:#94a3b8;--border:#2d3852;--accent:#3b82f6;--accent-hover:#2563eb;--shadow:0 1px 3px rgba(0,0,0,.4);--shadow-lg:0 10px 25px rgba(0,0,0,.5);--shadow-xl:0 24px 48px rgba(0,0,0,.6)}
+:root{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-hover:#1d4ed8;--danger:#dc2626;--warn:#f59e0b;--ok:#10b981;--star:#f59e0b;--press:rgba(15,23,42,.06);--press2:rgba(15,23,42,.1);--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-lg:0 10px 25px rgba(0,0,0,.12);--shadow-xl:0 24px 48px rgba(0,0,0,.18);--shadow-top:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.03);--radius:14px}
+[data-theme=dark]{--bg:#0a0f1a;--surface:#141b2d;--surface2:#1e2740;--text:#f1f5f9;--muted:#94a3b8;--border:#2d3852;--accent:#3b82f6;--accent-hover:#2563eb;--press:rgba(255,255,255,.06);--press2:rgba(255,255,255,.1);--shadow:0 1px 3px rgba(0,0,0,.4);--shadow-lg:0 10px 25px rgba(0,0,0,.5);--shadow-xl:0 24px 48px rgba(0,0,0,.6);--shadow-top:0 1px 0 rgba(255,255,255,.03),0 2px 8px rgba(0,0,0,.3)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
-.screen{display:none;flex-direction:column;height:100vh;height:100dvh;width:100%;overflow:hidden}
+html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--surface);color:var(--text);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+.screen{display:none;flex-direction:column;height:100vh;height:100dvh;width:100%;overflow:hidden;background:var(--bg)}
 .screen.active{display:flex}
 
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:2px;flex-shrink:0;padding:8px 6px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--border);z-index:10}
-.topbar h1{font-size:16px;font-weight:600;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:2px;flex-shrink:0;padding:8px 6px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--surface);box-shadow:var(--shadow-top);z-index:10}
+.topbar h1{font-size:16px;font-weight:600;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px;min-width:0;color:var(--text)}
 .topbar .logo{font-size:19px;font-weight:700;letter-spacing:-.02em;text-align:left;padding-left:10px}
-.icon-btn{background:transparent;border:0;color:var(--text);width:42px;height:42px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
-.icon-btn:hover{background:var(--bg)}
-.icon-btn:active{background:var(--surface2)}
-.icon-btn svg{width:22px;height:22px}
-.icon-btn.starred{color:var(--star)}
 
-.btn-primary,.btn-secondary,.btn-text,.btn-danger{border:0;cursor:pointer;font-size:15px;font-weight:600;border-radius:12px;padding:12px 18px;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.icon-btn{background:transparent;border:0;color:var(--text);width:42px;height:42px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s ease,opacity .12s ease;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.icon-btn svg{width:22px;height:22px;stroke:currentColor}
+.icon-btn:active{background:var(--press)}
+.icon-btn.starred{color:var(--star)}
+@media (hover:hover){
+  .icon-btn:hover{background:var(--press)}
+}
+
+.btn-primary,.btn-secondary,.btn-text,.btn-danger{border:0;cursor:pointer;font-size:15px;font-weight:600;border-radius:12px;padding:12px 18px;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:active{background:var(--accent-hover);transform:scale(.98)}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .btn-secondary:hover{background:var(--surface2)}
-.btn-text{background:transparent;color:var(--accent);padding:8px 12px}
+.btn-secondary:active{background:var(--surface2);transform:scale(.98)}
+.btn-text{background:transparent;color:var(--accent);padding:8px 12px;font-weight:600}
+.btn-text:active{opacity:.7}
 .btn-danger{background:var(--danger);color:#fff}
+.btn-danger:active{transform:scale(.98)}
 .wide{width:100%}
 
 .search-wrap{padding:10px 16px 4px;flex-shrink:0;background:var(--bg)}
@@ -43,8 +51,9 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .search-box svg{width:18px;height:18px;color:var(--muted);flex-shrink:0}
 .search-box input{flex:1;background:transparent;border:0;outline:0;font-size:15px;color:var(--text);font-family:inherit;min-width:0}
 .search-box input::placeholder{color:var(--muted)}
-.search-clear{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:4px;display:none}
+.search-clear{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:4px;display:none;border-radius:8px}
 .search-clear.show{display:flex}
+.search-clear:active{background:var(--press)}
 
 .chip-row{display:flex;gap:8px;padding:10px 16px 4px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
 .chip-row::-webkit-scrollbar{display:none}
@@ -87,6 +96,7 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .fab:active{transform:scale(.96)}
 .fab-secondary{width:56px;height:56px;border-radius:50%;background:var(--surface);color:var(--text);border:1px solid var(--border);cursor:pointer;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center}
 .fab-secondary svg{width:24px;height:24px}
+.fab-secondary:active{transform:scale(.96)}
 
 .sel-bar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:none;gap:8px;z-index:30;box-shadow:0 -8px 24px rgba(0,0,0,.1)}
 .sel-bar.show{display:flex}
@@ -108,6 +118,7 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .tool-row{display:flex;gap:8px;margin-top:4px}
 .tool-btn{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;transition:background .15s}
 .tool-btn:hover{background:var(--surface2)}
+.tool-btn:active{background:var(--surface2)}
 .tool-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tool-btn svg{width:18px;height:18px}
 
@@ -143,7 +154,7 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:8px auto 12px}
 .sheet-title{padding:0 16px 12px;font-size:15px;font-weight:600;color:var(--muted);text-align:center}
 .sheet-item{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;cursor:pointer;font-size:15px;font-weight:500;color:var(--text);background:transparent;border:0;width:100%;text-align:left;font-family:inherit;transition:background .15s}
-.sheet-item:hover{background:var(--bg)}
+.sheet-item:active{background:var(--press)}
 .sheet-item svg{width:20px;height:20px;color:var(--muted);flex-shrink:0}
 .sheet-item.danger{color:var(--danger)}
 .sheet-item.danger svg{color:var(--danger)}
@@ -540,36 +551,15 @@ function navigateHome(){
   renderHome();
 }
 
-function triggerBack(){
-  history.back();
-}
+function triggerBack(){ history.back(); }
 
-// Handle every back (in-app button OR Android hardware back)
-window.addEventListener('popstate', () => {
-  handleBack();
-});
+window.addEventListener('popstate', () => { handleBack(); });
 
 function handleBack(){
-  // Decide whether to stay in app. If we're at home with nothing open, allow exit.
-  const atHomeClean = currentScreen==='home'
-    && !state.selectMode
-    && !state.search
-    && !state.currentFolder;
-
-  if(atHomeClean){
-    // Let the browser exit the app
-    return;
-  }
-
-  // Push a new state immediately to keep user inside the app
+  const atHomeClean = currentScreen==='home' && !state.selectMode && !state.search && !state.currentFolder;
+  if(atHomeClean) return;
   history.pushState({screen:currentScreen},'');
-
-  // 1. Selection mode
-  if(state.selectMode){
-    exitSelect();
-    return;
-  }
-  // 2. Search
+  if(state.selectMode){ exitSelect(); return; }
   if(state.search){
     state.search='';
     $('#searchInput').value='';
@@ -577,48 +567,27 @@ function handleBack(){
     renderHome();
     return;
   }
-  // 3. Inside a folder
-  if(state.currentFolder){
-    state.currentFolder=null;
-    renderHome();
-    return;
-  }
-  // 4. Screen-specific
+  if(state.currentFolder){ state.currentFolder=null; renderHome(); return; }
   switch(currentScreen){
     case 'crop':{
       confirmDialog('Discard this scan?','Your current scan will be lost.','Discard').then(ok=>{
-        if(ok){
-          cropState.onComplete=null;
-          state.currentImage=null;
-          state.currentDoc=null;
-          navigateHome();
-        }
+        if(ok){ cropState.onComplete=null; state.currentImage=null; state.currentDoc=null; navigateHome(); }
       });
       break;
     }
     case 'editor':{
       confirmDialog('Discard this scan?','Your changes will be lost.','Discard').then(ok=>{
-        if(ok){
-          state.currentImage=null;
-          state.currentDoc=null;
-          navigateHome();
-        }
+        if(ok){ state.currentImage=null; state.currentDoc=null; navigateHome(); }
       });
       break;
     }
-    case 'doc':{
-      navigateHome();
-      break;
-    }
+    case 'doc': navigateHome(); break;
     case 'ocr':{
       if(viewingDocId){
-        currentScreen='doc';
-        showScreenOnly('doc');
+        currentScreen='doc'; showScreenOnly('doc');
         history.pushState({screen:'doc'},'');
         refreshDocScreen();
-      } else {
-        navigateHome();
-      }
+      } else navigateHome();
       break;
     }
   }
@@ -635,7 +604,6 @@ async function refreshDocScreen(){
   renderPages(doc);
 }
 
-// Wire every back button to triggerBack
 ['homeBack','cropBack','editorBack','docBack','ocrBack'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) el.onclick=()=>triggerBack();
@@ -743,7 +711,6 @@ function updateSelectUI(){
   if(show) $('#selInfo').textContent=`${state.selected.size} selected`;
 }
 function exitSelect(){ state.selectMode=false; state.selected.clear(); renderHome(); }
-
 function openFolder(id){ state.currentFolder=id; renderHome(); }
 
 $('#selectBtn').onclick=()=>{ exitSelect(); };
@@ -830,16 +797,11 @@ async function docMenu(id){
     doc.updatedAt=Date.now();
     await saveDoc(doc);
     renderHome(); toast('Moved');
-  }else if(action==='ocr'){
-    await runOcrOnDoc(id);
-  }else if(action==='share'){
-    await shareDoc(doc);
-  }else if(action==='print'){
-    await printDoc(doc);
-  }else if(action==='export'){
-    openDoc(id);
-    setTimeout(()=>exportMenu(),300);
-  }else if(action==='delete'){
+  }else if(action==='ocr'){ await runOcrOnDoc(id); }
+  else if(action==='share'){ await shareDoc(doc); }
+  else if(action==='print'){ await printDoc(doc); }
+  else if(action==='export'){ openDoc(id); setTimeout(()=>exportMenu(),300); }
+  else if(action==='delete'){
     const ok=await confirmDialog('Delete document?',`"${doc.name}" will be permanently deleted.`);
     if(!ok)return;
     await deleteDoc(id); renderHome(); toast('Deleted');
@@ -1117,11 +1079,9 @@ async function showEditor(){
 
 function renderEditor(){
   if(!editorSourceCanvas)return;
-  if(state.currentMode==='original'){
-    ectx.drawImage(editorSourceCanvas,0,0);
-  }else if(!window.cv||!cv.imread){
-    ectx.drawImage(editorSourceCanvas,0,0);
-  }else{
+  if(state.currentMode==='original'){ ectx.drawImage(editorSourceCanvas,0,0); }
+  else if(!window.cv||!cv.imread){ ectx.drawImage(editorSourceCanvas,0,0); }
+  else{
     try{
       let src=cv.imread(editorSourceCanvas);
       let out=new cv.Mat();
@@ -1227,7 +1187,6 @@ function rotateEditor(dir){
   renderEditor();
 }
 
-// ==================== Save ====================
 $('#editorSave').onclick=async()=>{
   try {
     let doc = state.currentDoc;
@@ -1236,11 +1195,8 @@ $('#editorSave').onclick=async()=>{
       doc = {
         id: uuid(),
         name: 'Scan ' + new Date().toLocaleString(undefined, {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}),
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        pages: [],
-        folderId: state.currentFolder,
-        starred: false,
+        createdAt: Date.now(), updatedAt: Date.now(), pages: [],
+        folderId: state.currentFolder, starred: false,
       };
     }
     if (!Array.isArray(doc.pages)) doc.pages = [];
@@ -1265,18 +1221,13 @@ $('#editorSave').onclick=async()=>{
     }
 
     const page = { id: uuid(), dataUrl };
-    if (state.currentPageIndex >= 0 && state.currentPageIndex < doc.pages.length) {
-      doc.pages[state.currentPageIndex] = page;
-    } else {
-      doc.pages.push(page);
-    }
+    if (state.currentPageIndex >= 0 && state.currentPageIndex < doc.pages.length) doc.pages[state.currentPageIndex] = page;
+    else doc.pages.push(page);
     doc.updatedAt = Date.now();
     await saveDoc(doc);
 
     const savedId = doc.id;
-    state.currentImage = null;
-    state.currentDoc = null;
-    state.currentPageIndex = -1;
+    state.currentImage = null; state.currentDoc = null; state.currentPageIndex = -1;
     state.brightness = 0; state.contrast = 0; state.sharpness = 0;
 
     await renderHome();
@@ -1397,10 +1348,7 @@ function renderPages(doc){
     };
   });
   list.querySelectorAll('.page-wrap').forEach(el=>{
-    el.onclick=()=>{
-      const idx=parseInt(el.dataset.idx,10);
-      viewPageFull(idx);
-    };
+    el.onclick=()=>{ viewPageFull(parseInt(el.dataset.idx,10)); };
   });
   let dragIdx=null;
   list.querySelectorAll('.page-wrap').forEach(el=>{
@@ -1518,10 +1466,7 @@ async function shareDoc(doc){
       c.getContext('2d').drawImage(img,0,0);
       const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));
       const file=new File([blob],doc.name+'.jpg',{type:'image/jpeg'});
-      if(navigator.canShare({files:[file]})){
-        await navigator.share({files:[file],title:doc.name});
-        return;
-      }
+      if(navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:doc.name}); return; }
     }
     await navigator.share({title:doc.name,text:`${doc.pages.length} page document`});
   }catch(e){if(e.name!=='AbortError')console.warn(e);}
@@ -1566,10 +1511,7 @@ function openOcr(text){
 }
 setIcon($('#ocrCopy'),ICONS.copy);
 setIcon($('#ocrDownload'),ICONS.download);
-$('#ocrCopy').onclick=async()=>{
-  try{ await navigator.clipboard.writeText(window._ocrText||''); toast('Copied'); }
-  catch(e){ toast('Copy failed'); }
-};
+$('#ocrCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(window._ocrText||''); toast('Copied'); }catch(e){ toast('Copy failed'); } };
 $('#ocrShare').onclick=async()=>{
   if(!navigator.share){toast('Sharing not supported');return;}
   try{ await navigator.share({title:'Extracted text',text:window._ocrText||''}); }catch(e){}
@@ -1596,7 +1538,7 @@ const themeBtn=$('#themeBtn');
 const themeColorMeta=document.querySelector('meta[name="theme-color"]');
 function updateThemeColor(){
   const s=getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
-  themeColorMeta.setAttribute('content',s||'#ffffff');
+  if(themeColorMeta && s) themeColorMeta.setAttribute('content', s);
 }
 function applyTheme(t){
   document.documentElement.dataset.theme=t;
@@ -1625,7 +1567,6 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   renderChips();
   await renderHome();
   showScreenOnly('home');
-  // Push initial nav entry so Android hardware back can be captured
   history.replaceState({screen:'home'},'');
   history.pushState({screen:'home'},'');
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');
