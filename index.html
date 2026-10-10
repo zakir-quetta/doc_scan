@@ -3,28 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Doc Scanner</title>
 <style>
 :root{--bg:#f4f5f7;--surface:#fff;--surface2:#eef1f5;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-hover:#1d4ed8;--danger:#dc2626;--warn:#f59e0b;--ok:#10b981;--star:#f59e0b;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-lg:0 10px 25px rgba(0,0,0,.12);--shadow-xl:0 24px 48px rgba(0,0,0,.18);--radius:14px;--radius-sm:10px}
 [data-theme=dark]{--bg:#0a0f1a;--surface:#141b2d;--surface2:#1e2740;--text:#f1f5f9;--muted:#94a3b8;--border:#2d3852;--accent:#3b82f6;--accent-hover:#2563eb;--shadow:0 1px 3px rgba(0,0,0,.4);--shadow-lg:0 10px 25px rgba(0,0,0,.5);--shadow-xl:0 24px 48px rgba(0,0,0,.6)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;overscroll-behavior-y:none}
-body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
-.screen{display:none;flex-direction:column;min-height:100vh;min-height:100dvh}
+html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+.screen{display:none;flex-direction:column;height:100vh;height:100dvh;width:100%;overflow:hidden}
 .screen.active{display:flex}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 6px;gap:2px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-.topbar h1{font-size:16px;font-weight:600;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:2px;flex-shrink:0;padding:8px 6px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--border);z-index:10}
+.topbar h1{font-size:16px;font-weight:600;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px;min-width:0}
 .topbar .logo{font-size:19px;font-weight:700;letter-spacing:-.02em;text-align:left;padding-left:10px}
 .icon-btn{background:transparent;border:0;color:var(--text);width:42px;height:42px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
 .icon-btn:hover{background:var(--bg)}
 .icon-btn:active{background:var(--surface2)}
 .icon-btn svg{width:22px;height:22px}
 .icon-btn.starred{color:var(--star)}
+
 .btn-primary,.btn-secondary,.btn-text,.btn-danger{border:0;cursor:pointer;font-size:15px;font-weight:600;border-radius:12px;padding:12px 18px;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:var(--accent-hover)}
@@ -34,24 +36,22 @@ body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bot
 .btn-text{background:transparent;color:var(--accent);padding:8px 12px}
 .btn-danger{background:var(--danger);color:#fff}
 .wide{width:100%}
-.btn-icon{width:38px;height:38px;padding:0}
-.btn-icon svg{width:18px;height:18px}
 
-.search-wrap{padding:10px 16px 4px;position:sticky;top:57px;background:var(--bg);z-index:9}
+.search-wrap{padding:10px 16px 4px;flex-shrink:0;background:var(--bg)}
 .search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;transition:border-color .15s}
 .search-box:focus-within{border-color:var(--accent)}
 .search-box svg{width:18px;height:18px;color:var(--muted);flex-shrink:0}
-.search-box input{flex:1;background:transparent;border:0;outline:0;font-size:15px;color:var(--text);font-family:inherit}
+.search-box input{flex:1;background:transparent;border:0;outline:0;font-size:15px;color:var(--text);font-family:inherit;min-width:0}
 .search-box input::placeholder{color:var(--muted)}
 .search-clear{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:4px;display:none}
 .search-clear.show{display:flex}
 
-.chip-row{display:flex;gap:8px;padding:10px 16px 4px;overflow-x:auto;scrollbar-width:none}
+.chip-row{display:flex;gap:8px;padding:10px 16px 4px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
 .chip-row::-webkit-scrollbar{display:none}
 .chip{flex-shrink:0;background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
 .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
-.home-content{flex:1;overflow-y:auto;padding-bottom:130px;-webkit-overflow-scrolling:touch}
+.home-content{flex:1;overflow-y:auto;padding-bottom:130px;-webkit-overflow-scrolling:touch;min-height:0}
 .section-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:16px 20px 8px;display:flex;justify-content:space-between;align-items:center}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px 40px;text-align:center;color:var(--muted)}
 .empty-art{font-size:56px;margin-bottom:14px;opacity:.4}
@@ -80,7 +80,7 @@ body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bot
 .doc-card-check{position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:700;box-shadow:var(--shadow)}
 .doc-card.selected .doc-card-check{display:flex}
 
-.fab-row{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));display:flex;gap:12px;justify-content:center;align-items:center;background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none;z-index:20}
+.fab-row{position:absolute;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));display:flex;gap:12px;justify-content:center;align-items:center;background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none;z-index:20}
 .fab-row>*{pointer-events:auto}
 .fab{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:15px 26px;font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 8px 20px rgba(37,99,235,.35);cursor:pointer;transition:transform .15s;font-family:inherit}
 .fab svg{width:22px;height:22px}
@@ -88,22 +88,22 @@ body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bot
 .fab-secondary{width:56px;height:56px;border-radius:50%;background:var(--surface);color:var(--text);border:1px solid var(--border);cursor:pointer;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center}
 .fab-secondary svg{width:24px;height:24px}
 
-.sel-bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:none;gap:8px;z-index:30;box-shadow:0 -8px 24px rgba(0,0,0,.1)}
+.sel-bar{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:none;gap:8px;z-index:30;box-shadow:0 -8px 24px rgba(0,0,0,.1)}
 .sel-bar.show{display:flex}
 .sel-bar button{flex:1}
-.sel-info{position:fixed;top:calc(60px + env(safe-area-inset-top));left:16px;right:16px;background:var(--accent);color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;text-align:center;z-index:15;box-shadow:var(--shadow-lg);display:none}
+.sel-info{position:absolute;top:calc(58px + env(safe-area-inset-top));left:16px;right:16px;background:var(--accent);color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;text-align:center;z-index:15;box-shadow:var(--shadow-lg);display:none}
 .sel-info.show{display:block}
 
 .editor-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;min-height:0}
 #editorCanvas{max-width:100%;max-height:100%;border-radius:8px;box-shadow:var(--shadow-lg);touch-action:none}
-.editor-controls{background:var(--surface);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));max-height:52vh;overflow-y:auto}
+.editor-controls{background:var(--surface);border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));max-height:52vh;overflow-y:auto;flex-shrink:0}
 .mode-tabs{display:flex;gap:4px;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
 .mode-tabs::-webkit-scrollbar{display:none}
 .mode-tab{flex:1;min-width:60px;border:0;background:transparent;color:var(--muted);padding:9px 4px;font-size:12px;font-weight:600;border-radius:9px;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
 .mode-tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 .slider-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .slider-row label{font-size:12px;color:var(--muted);font-weight:600;width:70px;flex-shrink:0}
-.slider-row input[type=range]{flex:1;accent-color:var(--accent);height:24px}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent);height:24px;min-width:0}
 .slider-row .val{font-size:12px;color:var(--muted);width:34px;text-align:right;font-variant-numeric:tabular-nums}
 .tool-row{display:flex;gap:8px;margin-top:4px}
 .tool-btn{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;transition:background .15s}
@@ -111,7 +111,7 @@ body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bot
 .tool-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tool-btn svg{width:18px;height:18px}
 
-.pages-list{flex:1;padding:16px 16px 130px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;overflow-y:auto;align-content:start}
+.pages-list{flex:1;padding:16px 16px 130px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;overflow-y:auto;align-content:start;min-height:0;-webkit-overflow-scrolling:touch}
 .page-wrap{position:relative;cursor:pointer;user-select:none}
 .page-thumb{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;box-shadow:var(--shadow);background:var(--surface);display:block}
 .page-num{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;backdrop-filter:blur(4px)}
@@ -119,20 +119,20 @@ body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bot
 .page-del svg{width:14px;height:14px}
 .page-wrap.dragging{opacity:.4}
 .page-wrap.drop-target{outline:3px dashed var(--accent);outline-offset:-3px}
-.doc-actions{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 55%,transparent);display:flex;gap:10px;z-index:20}
+.doc-actions{position:absolute;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 55%,transparent);display:flex;gap:10px;z-index:20;flex-shrink:0}
 .doc-actions button{flex:1}
 
 .install-bar{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;right:12px;background:var(--surface);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-xl);z-index:100;animation:slideDown .3s ease}
 @keyframes slideDown{from{transform:translateY(-140%);opacity:0}to{transform:translateY(0);opacity:1}}
 .install-bar.hidden{display:none}
-.install-bar-text{flex:1;display:flex;flex-direction:column}
+.install-bar-text{flex:1;display:flex;flex-direction:column;min-width:0}
 .install-bar-text strong{font-size:14px}
 .install-bar-text span{font-size:12px;color:var(--muted)}
 
 .crop-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;background:#0a0a0a;overflow:hidden;min-height:0;position:relative}
 #cropCanvas{max-width:100%;max-height:100%;touch-action:none;display:block;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.6);cursor:crosshair}
-.crop-hint{padding:10px 16px;text-align:center;font-size:12px;color:var(--muted);background:var(--surface);border-top:1px solid var(--border)}
-.crop-controls{padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);display:flex;gap:10px}
+.crop-hint{padding:10px 16px;text-align:center;font-size:12px;color:var(--muted);background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.crop-controls{padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);display:flex;gap:10px;flex-shrink:0}
 .crop-controls button{flex:1}
 
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease}
@@ -169,18 +169,18 @@ body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bot
 .loader-text{color:#fff;font-size:14px;margin-top:14px;font-weight:500}
 .loader-inner{display:flex;flex-direction:column;align-items:center}
 
-.ocr-body{flex:1;padding:16px;overflow-y:auto;padding-bottom:100px}
+.ocr-body{flex:1;padding:16px;overflow-y:auto;padding-bottom:100px;min-height:0;-webkit-overflow-scrolling:touch}
 .ocr-text{background:var(--surface);border-radius:12px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--text);word-break:break-word}
-.ocr-actions{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 55%,transparent);display:flex;gap:10px;z-index:20}
+.ocr-actions{position:absolute;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 55%,transparent);display:flex;gap:10px;z-index:20}
 .ocr-actions button{flex:1}
 
 .sig-pad{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:none;flex-direction:column}
 .sig-pad.show{display:flex}
-.sig-head{padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.sig-head{padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;padding-top:calc(16px + env(safe-area-inset-top))}
 .sig-head h3{font-size:16px;font-weight:600}
-.sig-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px}
+.sig-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0}
 #sigCanvas{background:#fff;border-radius:12px;touch-action:none;cursor:crosshair;max-width:100%;max-height:100%}
-.sig-foot{padding:16px;display:flex;gap:10px;justify-content:center}
+.sig-foot{padding:16px;display:flex;gap:10px;justify-content:center;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 
 @media print{
   body{background:#fff;padding:0}
@@ -389,6 +389,7 @@ const ICONS = {
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   img:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  dots:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>',
 };
 function setIcon(el, svg){ if(el) el.innerHTML = svg; }
 
@@ -412,7 +413,7 @@ function toast(msg, dur=2200){
 function showLoader(text='Working...'){ $('#loaderText').textContent=text; $('#loader').classList.add('show'); }
 function hideLoader(){ $('#loader').classList.remove('show'); }
 
-// ==================== Modal (prompt) ====================
+// ==================== Modal ====================
 function showModal({title,msg,input,default:def,okText='OK',danger=false}){
   return new Promise(resolve=>{
     const m=$('#modal');
@@ -502,10 +503,143 @@ const state={
   signatureImg:null,
 };
 let viewingDocId=null;
+let currentScreen='home';
+
+// ==================== Screens ====================
+const screens={home:$('#homeScreen'),crop:$('#cropScreen'),editor:$('#editorScreen'),doc:$('#docScreen'),ocr:$('#ocrScreen')};
+
+function showScreenOnly(name){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name]?.classList.add('active');
+}
+
+function onScreenEnter(name){
+  if(name==='home') renderHome();
+  else if(name==='doc' && viewingDocId) refreshDocScreen();
+}
 
 // ==================== Navigation ====================
-const screens={home:$('#homeScreen'),crop:$('#cropScreen'),editor:$('#editorScreen'),doc:$('#docScreen'),ocr:$('#ocrScreen')};
-function showScreen(n){Object.values(screens).forEach(s=>s.classList.remove('active'));screens[n].classList.add('active');window.scrollTo(0,0)}
+function navigate(name){
+  if(currentScreen===name) return;
+  currentScreen=name;
+  showScreenOnly(name);
+  history.pushState({screen:name},'');
+  onScreenEnter(name);
+}
+
+function navigateHome(){
+  viewingDocId=null;
+  state.selectMode=false;
+  state.selected.clear();
+  state.search='';
+  $('#searchInput').value='';
+  $('#searchClear').classList.remove('show');
+  currentScreen='home';
+  showScreenOnly('home');
+  history.pushState({screen:'home'},'');
+  renderHome();
+}
+
+function triggerBack(){
+  history.back();
+}
+
+// Handle every back (in-app button OR Android hardware back)
+window.addEventListener('popstate', () => {
+  handleBack();
+});
+
+function handleBack(){
+  // Decide whether to stay in app. If we're at home with nothing open, allow exit.
+  const atHomeClean = currentScreen==='home'
+    && !state.selectMode
+    && !state.search
+    && !state.currentFolder;
+
+  if(atHomeClean){
+    // Let the browser exit the app
+    return;
+  }
+
+  // Push a new state immediately to keep user inside the app
+  history.pushState({screen:currentScreen},'');
+
+  // 1. Selection mode
+  if(state.selectMode){
+    exitSelect();
+    return;
+  }
+  // 2. Search
+  if(state.search){
+    state.search='';
+    $('#searchInput').value='';
+    $('#searchClear').classList.remove('show');
+    renderHome();
+    return;
+  }
+  // 3. Inside a folder
+  if(state.currentFolder){
+    state.currentFolder=null;
+    renderHome();
+    return;
+  }
+  // 4. Screen-specific
+  switch(currentScreen){
+    case 'crop':{
+      confirmDialog('Discard this scan?','Your current scan will be lost.','Discard').then(ok=>{
+        if(ok){
+          cropState.onComplete=null;
+          state.currentImage=null;
+          state.currentDoc=null;
+          navigateHome();
+        }
+      });
+      break;
+    }
+    case 'editor':{
+      confirmDialog('Discard this scan?','Your changes will be lost.','Discard').then(ok=>{
+        if(ok){
+          state.currentImage=null;
+          state.currentDoc=null;
+          navigateHome();
+        }
+      });
+      break;
+    }
+    case 'doc':{
+      navigateHome();
+      break;
+    }
+    case 'ocr':{
+      if(viewingDocId){
+        currentScreen='doc';
+        showScreenOnly('doc');
+        history.pushState({screen:'doc'},'');
+        refreshDocScreen();
+      } else {
+        navigateHome();
+      }
+      break;
+    }
+  }
+}
+
+async function refreshDocScreen(){
+  if(!viewingDocId) return;
+  const doc=await getDoc(viewingDocId);
+  if(!doc){ navigateHome(); return; }
+  currentDocData=doc;
+  $('#docTitle').textContent=doc.name;
+  setIcon($('#docStar'),doc.starred?ICONS.starFill:ICONS.star);
+  $('#docStar').classList.toggle('starred',!!doc.starred);
+  renderPages(doc);
+}
+
+// Wire every back button to triggerBack
+['homeBack','cropBack','editorBack','docBack','ocrBack'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.onclick=()=>triggerBack();
+});
 
 // ==================== Home ====================
 async function renderHome(){
@@ -519,10 +653,11 @@ async function renderHome(){
   $('#homeBack').style.display=inFolder?'':'none';
   $('#newFolderBtn').style.display=(inFolder||state.selectMode)?'none':'';
   $('#deleteFolderBtn').style.display=inFolder?'':'none';
-  $('#selectBtn').style.display=(state.selectMode||allDocs.length>0)?'':'none';
-  $('#selectBtn').innerHTML=state.selectMode?ICONS.back:ICONS.select;
+  $('#selectBtn').style.display=state.selectMode?'':'none';
+  $('#selectBtn').innerHTML=ICONS.back;
   $('#fabRow').style.display=state.selectMode?'none':'';
   $('.search-wrap').style.display=state.selectMode?'none':'';
+  $('#chipRow').style.display=state.selectMode?'none':'';
 
   let docs=allDocs.filter(d=>(d.folderId||null)===inFolder);
   if(state.view==='starred')docs=docs.filter(d=>d.starred);
@@ -609,10 +744,8 @@ function updateSelectUI(){
 }
 function exitSelect(){ state.selectMode=false; state.selected.clear(); renderHome(); }
 
-function goHome(){ viewingDocId=null; state.currentFolder=null; state.selectMode=false; state.selected.clear(); state.search=''; $('#searchInput').value=''; showScreen('home'); renderHome(); }
 function openFolder(id){ state.currentFolder=id; renderHome(); }
 
-$('#homeBack').onclick=()=>{ state.currentFolder=null; renderHome(); };
 $('#selectBtn').onclick=()=>{ exitSelect(); };
 
 $('#newFolderBtn').onclick=async()=>{
@@ -864,7 +997,8 @@ async function startCrop(img,onComplete){
   if(ready){try{corners=detectDocumentEdges(wc)}catch(e){}}
   if(!corners)corners=defaultCorners(wc.width,wc.height);
   cropState.corners=corners;
-  drawCrop();showScreen('crop');
+  drawCrop();
+  navigate('crop');
 }
 function defaultCorners(w,h){const p=0.05;return[{x:w*p,y:h*p},{x:w*(1-p),y:h*p},{x:w*(1-p),y:h*(1-p)},{x:w*p,y:h*(1-p)}]}
 function handleRadius(){return Math.min(cropState.canvas.width,cropState.canvas.height)*0.05}
@@ -957,10 +1091,6 @@ function applyCropWarp(){
   src.delete();srcTri.delete();dstTri.delete();M.delete();dst.delete();return out;
 }
 $('#cropApply').onclick=()=>{const r=applyCropWarp(),cb=cropState.onComplete;cropState.onComplete=null;if(cb)cb(r)};
-$('#cropBack').onclick=async()=>{
-  const ok=await confirmDialog('Discard this scan?','Your current scan will be lost.','Discard');
-  if(ok){cropState.onComplete=null;state.currentImage=null;state.currentDoc=null;goHome();}
-};
 $('#cropAuto').onclick=()=>{const c=detectDocumentEdges(cropState.workCanvas);if(c){cropState.corners=c;drawCrop()}else toast('No document detected')};
 $('#cropReset').onclick=()=>{cropState.corners=defaultCorners(cropState.canvas.width,cropState.canvas.height);drawCrop()};
 
@@ -981,7 +1111,7 @@ async function showEditor(){
   editorSourceCanvas.height=editorCanvas.height;
   editorSourceCanvas.getContext('2d').drawImage(img,0,0,editorCanvas.width,editorCanvas.height);
   $$('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===state.currentMode));
-  showScreen('editor');
+  navigate('editor');
   renderEditor();
 }
 
@@ -1097,21 +1227,12 @@ function rotateEditor(dir){
   renderEditor();
 }
 
-$('#editorBack').onclick=async()=>{
-  const ok=await confirmDialog('Discard this scan?','Your changes will be lost.','Discard');
-  if(ok){state.currentImage=null;state.currentDoc=null;goHome();}
-};
-
-// ==================== SAVE (FIXED) ====================
+// ==================== Save ====================
 $('#editorSave').onclick=async()=>{
   try {
-    // 1. Ensure we have a doc to save into
     let doc = state.currentDoc;
-    if (!doc && viewingDocId) {
-      doc = await getDoc(viewingDocId);
-    }
+    if (!doc && viewingDocId) doc = await getDoc(viewingDocId);
     if (!doc) {
-      // Reconstruct a fresh doc as a last resort
       doc = {
         id: uuid(),
         name: 'Scan ' + new Date().toLocaleString(undefined, {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}),
@@ -1123,16 +1244,9 @@ $('#editorSave').onclick=async()=>{
       };
     }
     if (!Array.isArray(doc.pages)) doc.pages = [];
-
-    // 2. Validate the canvas actually has content
-    if (!editorCanvas || !editorCanvas.width || !editorCanvas.height) {
-      toast('Nothing to save — no image');
-      return;
-    }
+    if (!editorCanvas || !editorCanvas.width || !editorCanvas.height) { toast('Nothing to save'); return; }
 
     showLoader('Saving...');
-
-    // 3. Bake CSS filter + sharpness into a final canvas
     const out = document.createElement('canvas');
     out.width = editorCanvas.width;
     out.height = editorCanvas.height;
@@ -1142,42 +1256,32 @@ $('#editorSave').onclick=async()=>{
     octx.drawImage(editorCanvas, 0, 0);
     applySharpness(out);
 
-    // 4. Encode (with a fallback if toDataURL throws)
     let dataUrl;
     try {
       dataUrl = out.toDataURL('image/jpeg', 0.92);
       if (!dataUrl || dataUrl === 'data:,') throw new Error('empty');
     } catch (e) {
-      console.warn('JPEG encode failed, retrying at lower quality', e);
       dataUrl = out.toDataURL('image/jpeg', 0.7);
     }
 
     const page = { id: uuid(), dataUrl };
-
-    // 5. Insert / replace page
     if (state.currentPageIndex >= 0 && state.currentPageIndex < doc.pages.length) {
       doc.pages[state.currentPageIndex] = page;
     } else {
       doc.pages.push(page);
     }
     doc.updatedAt = Date.now();
-
-    // 6. Persist
     await saveDoc(doc);
 
-    // 7. Reset state and navigate
     const savedId = doc.id;
     state.currentImage = null;
     state.currentDoc = null;
     state.currentPageIndex = -1;
-    state.brightness = 0;
-    state.contrast = 0;
-    state.sharpness = 0;
+    state.brightness = 0; state.contrast = 0; state.sharpness = 0;
 
     await renderHome();
-    openDoc(savedId);
-
     hideLoader();
+    openDoc(savedId);
     toast('Saved');
   } catch (err) {
     console.error('Save error:', err);
@@ -1262,7 +1366,11 @@ async function openDoc(id){
   setIcon($('#docStar'),doc.starred?ICONS.starFill:ICONS.star);
   $('#docStar').classList.toggle('starred',!!doc.starred);
   renderPages(doc);
-  showScreen('doc');
+  if(currentScreen!=='doc'){
+    currentScreen='doc';
+    showScreenOnly('doc');
+    history.pushState({screen:'doc'},'');
+  }
 }
 function renderPages(doc){
   const list=$('#pagesList');
@@ -1281,7 +1389,7 @@ function renderPages(doc){
       if(!ok)return;
       const d=await getDoc(viewingDocId);
       d.pages.splice(idx,1);
-      if(d.pages.length===0){ await deleteDoc(viewingDocId); goHome(); toast('Document deleted'); return; }
+      if(d.pages.length===0){ await deleteDoc(viewingDocId); navigateHome(); toast('Document deleted'); return; }
       d.updatedAt=Date.now();
       await saveDoc(d);currentDocData=d;
       renderPages(d);
@@ -1323,7 +1431,6 @@ function viewPageFull(idx){
   w.document.write(`<html><head><title>${escapeHtml(doc.name)} – Page ${idx+1}</title><style>body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh}img{max-width:100%;max-height:100vh}</style></head><body><img src="${doc.pages[idx].dataUrl}"></body></html>`);
 }
 
-$('#docBack').onclick=()=>goHome();
 $('#docStar').onclick=async()=>{
   const d=await getDoc(viewingDocId);
   d.starred=!d.starred;
@@ -1338,7 +1445,7 @@ $('#addPageBtn').onclick=async()=>{
   state.currentDoc=d;state.currentPageIndex=-1;
   $('#cameraInput').click();
 };
-setIcon($('#docMenu'),'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>');
+setIcon($('#docMenu'),ICONS.dots);
 $('#docMenu').onclick=()=>{ const id=viewingDocId; docMenu(id); };
 
 $('#exportBtn').onclick=()=>exportMenu();
@@ -1450,12 +1557,15 @@ async function runOcrOnDoc(id){
 }
 function openOcr(text){
   $('#ocrText').textContent=text||'(no text found)';
-  showScreen('ocr');
   window._ocrText=text;
+  if(currentScreen!=='ocr'){
+    currentScreen='ocr';
+    showScreenOnly('ocr');
+    history.pushState({screen:'ocr'},'');
+  }
 }
 setIcon($('#ocrCopy'),ICONS.copy);
 setIcon($('#ocrDownload'),ICONS.download);
-$('#ocrBack').onclick=()=>{ if(viewingDocId)openDoc(viewingDocId); else goHome(); };
 $('#ocrCopy').onclick=async()=>{
   try{ await navigator.clipboard.writeText(window._ocrText||''); toast('Copied'); }
   catch(e){ toast('Copy failed'); }
@@ -1483,10 +1593,16 @@ window.addEventListener('appinstalled',()=>installBar.classList.add('hidden'));
 
 // ==================== Theme ====================
 const themeBtn=$('#themeBtn');
+const themeColorMeta=document.querySelector('meta[name="theme-color"]');
+function updateThemeColor(){
+  const s=getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+  themeColorMeta.setAttribute('content',s||'#ffffff');
+}
 function applyTheme(t){
   document.documentElement.dataset.theme=t;
   LS.theme.set(t);
   setIcon(themeBtn,t==='dark'?ICONS.sun:ICONS.moon);
+  updateThemeColor();
 }
 applyTheme(LS.theme.get());
 themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
@@ -1502,11 +1618,16 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   setIcon($('#cropBack'),ICONS.back);
   setIcon($('#editorBack'),ICONS.back);
   setIcon($('#docBack'),ICONS.back);
+  setIcon($('#ocrBack'),ICONS.back);
   setIcon($('#sortBtn'),ICONS.sort);
-  setIcon($('#selectBtn'),ICONS.select);
+  setIcon($('#selectBtn'),ICONS.back);
+  updateThemeColor();
   renderChips();
   await renderHome();
-  showScreen('home');
+  showScreenOnly('home');
+  // Push initial nav entry so Android hardware back can be captured
+  history.replaceState({screen:'home'},'');
+  history.pushState({screen:'home'},'');
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');
 })();
 </script>
