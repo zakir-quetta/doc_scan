@@ -27,9 +27,7 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .icon-btn svg{width:22px;height:22px;stroke:currentColor}
 .icon-btn:active{background:var(--press)}
 .icon-btn.starred{color:var(--star)}
-@media (hover:hover){
-  .icon-btn:hover{background:var(--press)}
-}
+@media (hover:hover){.icon-btn:hover{background:var(--press)}}
 
 .btn-primary,.btn-secondary,.btn-text,.btn-danger{border:0;cursor:pointer;font-size:15px;font-weight:600;border-radius:12px;padding:12px 18px;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent}
 .btn-primary{background:var(--accent);color:#fff}
@@ -146,13 +144,14 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .crop-controls{padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:var(--surface);display:flex;gap:10px;flex-shrink:0}
 .crop-controls button{flex:1}
 
+/* ============ OVERLAYS ============ */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease}
 .overlay.show{display:flex}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.sheet{background:var(--surface);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));animation:slideUp .25s cubic-bezier(.2,.9,.3,1);max-height:85vh;overflow-y:auto}
+.sheet{background:var(--surface);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));animation:slideUp .25s cubic-bezier(.2,.9,.3,1);max-height:85vh;overflow-y:auto;will-change:transform;touch-action:pan-y}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:8px auto 12px}
-.sheet-title{padding:0 16px 12px;font-size:15px;font-weight:600;color:var(--muted);text-align:center}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:8px auto 12px;flex-shrink:0;touch-action:none;cursor:grab}
+.sheet-title{padding:0 16px 12px;font-size:15px;font-weight:600;color:var(--muted);text-align:center;touch-action:none;cursor:grab;user-select:none}
 .sheet-item{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;cursor:pointer;font-size:15px;font-weight:500;color:var(--text);background:transparent;border:0;width:100%;text-align:left;font-family:inherit;transition:background .15s}
 .sheet-item:active{background:var(--press)}
 .sheet-item svg{width:20px;height:20px;color:var(--muted);flex-shrink:0}
@@ -425,6 +424,8 @@ function showLoader(text='Working...'){ $('#loaderText').textContent=text; $('#l
 function hideLoader(){ $('#loader').classList.remove('show'); }
 
 // ==================== Modal ====================
+let modalClose = null;
+
 function showModal({title,msg,input,default:def,okText='OK',danger=false}){
   return new Promise(resolve=>{
     const m=$('#modal');
@@ -439,7 +440,15 @@ function showModal({title,msg,input,default:def,okText='OK',danger=false}){
     ok.className=danger?'btn-danger':'btn-primary';
     m.classList.add('show');
     if(input)setTimeout(()=>{inp.focus();inp.select();},80);
-    const close=v=>{m.classList.remove('show');ok.onclick=null;$('#modalCancel').onclick=null;inp.onkeydown=null;resolve(v)};
+    const close=v=>{
+      m.classList.remove('show');
+      ok.onclick=null;
+      $('#modalCancel').onclick=null;
+      inp.onkeydown=null;
+      modalClose=null;
+      resolve(v);
+    };
+    modalClose=()=>close(null);
     ok.onclick=()=>close(input?inp.value:true);
     $('#modalCancel').onclick=()=>close(null);
     inp.onkeydown=e=>{if(e.key==='Enter')close(inp.value);if(e.key==='Escape')close(null)};
@@ -450,8 +459,17 @@ function confirmDialog(title,msg,okText='Delete',danger=true){
 }
 
 // ==================== Bottom Sheet ====================
+let sheetResolver = null;
+
 function showSheet(title, items){
   return new Promise(resolve=>{
+    sheetResolver = resolve;
+    const sheet = $('#sheet');
+    // Reset any transform from previous drag
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    $('#sheetOverlay').style.background = '';
+
     $('#sheetTitle').textContent=title;
     const wrap=$('#sheetItems');
     wrap.innerHTML='';
@@ -459,15 +477,84 @@ function showSheet(title, items){
       const b=document.createElement('button');
       b.className='sheet-item'+(item.danger?' danger':'');
       b.innerHTML=(item.icon||'')+'<span>'+escapeHtml(item.label)+'</span>';
-      b.onclick=()=>{ closeSheet(); resolve(item.value); };
+      b.onclick=()=>{ finishSheet(item.value); };
       wrap.appendChild(b);
     });
     $('#sheetOverlay').classList.add('show');
-    const closeSheet=()=>{ $('#sheetOverlay').classList.remove('show'); $('#sheetOverlay').onclick=null; };
-    $('#sheetOverlay').onclick=e=>{ if(e.target===$('#sheetOverlay')){ closeSheet(); resolve(null); } };
+    $('#sheetOverlay').onclick=e=>{ if(e.target===$('#sheetOverlay')) finishSheet(null); };
   });
 }
-function closeSheet(){ $('#sheetOverlay').classList.remove('show'); }
+
+function finishSheet(value){
+  const r = sheetResolver;
+  sheetResolver = null;
+  const sheet = $('#sheet');
+  const ov = $('#sheetOverlay');
+  if(!ov.classList.contains('show')){
+    if(r) r(value);
+    return;
+  }
+  // Animate out
+  sheet.style.transition = 'transform .22s ease';
+  sheet.style.transform = 'translateY(100%)';
+  ov.style.background = 'rgba(0,0,0,0)';
+  setTimeout(()=>{
+    ov.classList.remove('show');
+    ov.onclick = null;
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    ov.style.background = '';
+    if(r) r(value);
+  }, 220);
+}
+
+function closeSheet(){ finishSheet(null); }
+
+// Swipe-to-dismiss for the sheet (drag from handle / title)
+function enableSheetSwipe(){
+  const sheet = $('#sheet');
+  const handle = sheet.querySelector('.sheet-handle');
+  const title = sheet.querySelector('.sheet-title');
+  const ov = $('#sheetOverlay');
+  let startY=0, deltaY=0, dragging=false, pid=null;
+
+  const startDrag = e => {
+    if(!ov.classList.contains('show')) return;
+    dragging=true; pid=e.pointerId; startY=e.clientY; deltaY=0;
+    sheet.style.transition='none';
+    try{ sheet.setPointerCapture(e.pointerId); }catch(_){}
+  };
+  const moveDrag = e => {
+    if(!dragging || e.pointerId!==pid) return;
+    e.preventDefault();
+    deltaY = Math.max(0, e.clientY - startY);
+    sheet.style.transform = `translateY(${deltaY}px)`;
+    const op = Math.max(0, 0.5 - 0.5*(deltaY/300));
+    ov.style.background = `rgba(0,0,0,${op})`;
+  };
+  const endDrag = () => {
+    if(!dragging) return;
+    dragging=false; pid=null;
+    sheet.style.transition='';
+    if(deltaY > 100){
+      finishSheet(null);
+    } else {
+      sheet.style.transition = 'transform .2s ease';
+      sheet.style.transform = '';
+      ov.style.background = '';
+      setTimeout(()=>{ sheet.style.transition=''; }, 200);
+    }
+    deltaY = 0;
+  };
+
+  [handle, title].forEach(el=>{
+    el.style.touchAction = 'none';
+    el.addEventListener('pointerdown', startDrag);
+  });
+  sheet.addEventListener('pointermove', moveDrag);
+  sheet.addEventListener('pointerup', endDrag);
+  sheet.addEventListener('pointercancel', endDrag);
+}
 
 // ==================== Long Press ====================
 function addLongPress(el, onLong, onShort){
@@ -553,12 +640,36 @@ function navigateHome(){
 
 function triggerBack(){ history.back(); }
 
-window.addEventListener('popstate', () => { handleBack(); });
+// Global back handler: overlays first, then screens
+window.addEventListener('popstate', () => {
+  // 1. Signature pad open → close it
+  if($('#sigPad').classList.contains('show')){
+    history.pushState({screen:currentScreen},'');
+    $('#sigPad').classList.remove('show');
+    return;
+  }
+  // 2. Modal open → cancel it
+  if($('#modal').classList.contains('show')){
+    history.pushState({screen:currentScreen},'');
+    if(modalClose) modalClose();
+    return;
+  }
+  // 3. Sheet open → close it
+  if($('#sheetOverlay').classList.contains('show')){
+    history.pushState({screen:currentScreen},'');
+    finishSheet(null);
+    return;
+  }
+  // 4. Screen-level back
+  handleScreenBack();
+});
 
-function handleBack(){
+function handleScreenBack(){
   const atHomeClean = currentScreen==='home' && !state.selectMode && !state.search && !state.currentFolder;
   if(atHomeClean) return;
+
   history.pushState({screen:currentScreen},'');
+
   if(state.selectMode){ exitSelect(); return; }
   if(state.search){
     state.search='';
@@ -568,6 +679,7 @@ function handleBack(){
     return;
   }
   if(state.currentFolder){ state.currentFolder=null; renderHome(); return; }
+
   switch(currentScreen){
     case 'crop':{
       confirmDialog('Discard this scan?','Your current scan will be lost.','Discard').then(ok=>{
@@ -1563,6 +1675,7 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   setIcon($('#ocrBack'),ICONS.back);
   setIcon($('#sortBtn'),ICONS.sort);
   setIcon($('#selectBtn'),ICONS.back);
+  enableSheetSwipe();
   updateThemeColor();
   renderChips();
   await renderHome();
