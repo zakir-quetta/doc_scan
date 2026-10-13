@@ -409,7 +409,7 @@ const state={
 let viewingDocId=null;
 let currentDocData=null;
 
-// ==================== NAVIGATION TREE (in-memory) ====================
+// ==================== NAVIGATION TREE ====================
 const nav = {
   stack: [{ screen: 'home', folderId: null }],
   current(){ return this.stack[this.stack.length - 1]; },
@@ -481,6 +481,10 @@ function pushSentinel(){
 let exitArmed = false;
 let exitTimer = null;
 
+// Flag: set to true when the confirm dialog was dismissed by hardware back.
+// The crop/editor branch reads this after the awaited dialog resolves.
+let modalDismissedByBack = false;
+
 window.addEventListener('popstate', () => {
   handleUserBack();
 });
@@ -493,20 +497,13 @@ async function handleUserBack(){
     return;
   }
 
-  // 2. Modal is open → dismiss it AND (if on crop/editor) leave that screen too
+  // 2. Modal — dismiss it, mark the flag. Do NOT touch nav here.
   if ($('#modal').classList.contains('show')) {
+    modalDismissedByBack = true;
     const r = modalResolver;
     modalResolver = null;
     $('#modal').classList.remove('show');
     if (r) r(null);
-
-    const top = nav.current();
-    if (top && (top.screen === 'crop' || top.screen === 'editor')) {
-      cropState.onComplete = null;
-      state.currentImage = null;
-      state.currentDoc = null;
-      await nav.pop();
-    }
     pushSentinel();
     return;
   }
@@ -543,18 +540,17 @@ async function handleUserBack(){
   // 6. Crop / editor — show discard dialog
   const top = nav.current();
   if (top.screen === 'crop' || top.screen === 'editor') {
-    // Re-arm sentinel BEFORE awaiting so the dialog's own back works.
     pushSentinel();
+    modalDismissedByBack = false;
     const wasCrop = top.screen === 'crop';
     const ok = await confirmDialog(
       'Discard this scan?',
       wasCrop ? 'Your current scan will be lost.' : 'Your changes will be lost.',
       'Discard'
     );
-    // Only pop if the user explicitly tapped Discard.
-    // If they tapped Cancel (null) → stay. If they pressed back → the modal
-    // branch above already popped.
-    if (ok === true) {
+    const shouldLeave = (ok === true) || modalDismissedByBack;
+    modalDismissedByBack = false;
+    if (shouldLeave) {
       cropState.onComplete = null;
       state.currentImage = null;
       state.currentDoc = null;
@@ -563,14 +559,14 @@ async function handleUserBack(){
     return;
   }
 
-  // 7. Any other screen → pop the tree
+  // 7. Pop tree
   if (nav.depth() > 1) {
     await nav.pop();
     pushSentinel();
     return;
   }
 
-  // 8. At root — double back to exit
+  // 8. Root double-back to exit
   if (!exitArmed) {
     exitArmed = true;
     clearTimeout(exitTimer);
