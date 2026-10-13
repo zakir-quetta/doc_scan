@@ -409,19 +409,15 @@ const state={
 let viewingDocId=null;
 let currentDocData=null;
 
-// ==================== NAVIGATION TREE (in-memory only) ====================
-// Entries: { screen, folderId?, docId? }
-// Reset automatically when app closes.
+// ==================== NAVIGATION TREE (in-memory) ====================
 const nav = {
   stack: [{ screen: 'home', folderId: null }],
-
   current(){ return this.stack[this.stack.length - 1]; },
   depth(){ return this.stack.length; },
 
   async render(){
     const top = this.current();
     if (!top) return;
-
     switch (top.screen){
       case 'home': {
         state.currentFolder = top.folderId || null;
@@ -434,7 +430,6 @@ const nav = {
       case 'doc': {
         const doc = await getDoc(top.docId);
         if (!doc){
-          // Doc gone — pop back
           if (this.stack.length > 1){ this.stack.pop(); return this.render(); }
           this.stack = [{ screen: 'home', folderId: null }];
           return this.render();
@@ -448,30 +443,17 @@ const nav = {
         showScreenOnly('doc');
         break;
       }
-      case 'crop':
-        showScreenOnly('crop');
-        drawCrop();
-        break;
-
-      case 'editor':
-        showScreenOnly('editor');
-        renderEditor();
-        break;
-
-      case 'ocr':
-        showScreenOnly('ocr');
-        break;
+      case 'crop': showScreenOnly('crop'); drawCrop(); break;
+      case 'editor': showScreenOnly('editor'); renderEditor(); break;
+      case 'ocr': showScreenOnly('ocr'); break;
     }
   },
 
   async push(entry){
     const top = this.current();
-    // Dedupe identical consecutive entries
     if (top && top.screen === entry.screen &&
         (top.docId || null) === (entry.docId || null) &&
-        (top.folderId || null) === (entry.folderId || null)) {
-      return;
-    }
+        (top.folderId || null) === (entry.folderId || null)) return;
     this.stack.push(entry);
     await this.render();
   },
@@ -488,14 +470,14 @@ const nav = {
     return true;
   },
 
-  reset(){
-    this.stack = [{ screen: 'home', folderId: null }];
-  }
+  reset(){ this.stack = [{ screen: 'home', folderId: null }]; }
 };
 
 // ==================== HISTORY SENTINEL ====================
-// We keep exactly one sentinel entry so back presses fire popstate.
-// Every handler re-pushes sentinel unless we're allowing exit.
+// We maintain exactly one sentinel entry at the top of history so every
+// back press fires popstate. After handling a back (and staying in-app),
+// we re-push a sentinel. Only the "second back at root" path skips it,
+// which lets the browser exit.
 function pushSentinel(){
   try { history.pushState({ app: true }, ''); } catch(_) {}
 }
@@ -508,7 +490,7 @@ window.addEventListener('popstate', () => {
 });
 
 async function handleUserBack(){
-  // 1. Overlays (not in nav tree — they're transient UI)
+  // 1. Overlays
   if ($('#sigPad').classList.contains('show')) {
     hideSigPad();
     pushSentinel();
@@ -546,36 +528,35 @@ async function handleUserBack(){
     return;
   }
 
-  // 2. Tree screens
+  // 2. Crop / editor: confirm discard
   const top = nav.current();
-  if (top.screen === 'crop') {
-    const ok = await confirmDialog('Discard this scan?', 'Your current scan will be lost.', 'Discard');
+  if (top.screen === 'crop' || top.screen === 'editor') {
+    // Re-arm sentinel BEFORE awaiting the dialog, so back presses while
+    // the dialog is showing still have something to intercept.
+    pushSentinel();
+    const wasCrop = top.screen === 'crop';
+    const ok = await confirmDialog(
+      'Discard this scan?',
+      wasCrop ? 'Your current scan will be lost.' : 'Your changes will be lost.',
+      'Discard'
+    );
     if (ok) {
       cropState.onComplete = null;
       state.currentImage = null;
       state.currentDoc = null;
       await nav.pop();
     }
-    pushSentinel();
     return;
   }
-  if (top.screen === 'editor') {
-    const ok = await confirmDialog('Discard this scan?', 'Your changes will be lost.', 'Discard');
-    if (ok) {
-      state.currentImage = null;
-      state.currentDoc = null;
-      await nav.pop();
-    }
-    pushSentinel();
-    return;
-  }
+
+  // 3. Any other screen: pop the tree
   if (nav.depth() > 1) {
     await nav.pop();
     pushSentinel();
     return;
   }
 
-  // 3. At root — double-back to exit
+  // 4. At root — double back to exit
   if (!exitArmed) {
     exitArmed = true;
     clearTimeout(exitTimer);
@@ -584,12 +565,13 @@ async function handleUserBack(){
     pushSentinel();
     return;
   }
-  // Exit!
+  // Second back — allow exit
+  exitArmed = false;
   try {
     if (navigator.app && navigator.app.exitApp) navigator.app.exitApp();
     else window.close();
   } catch(_) {}
-  // Don't push sentinel — allow exit
+  // No pushSentinel — the browser is free to close the app.
 }
 
 // ==================== Modal ====================
@@ -888,19 +870,14 @@ function updateSelectUI(){
 }
 function exitSelect(){ state.selectMode=false; state.selected.clear(); renderHome(); }
 
-function openFolder(id){
-  nav.push({ screen: 'home', folderId: id });
-}
-function openDoc(id){
-  nav.push({ screen: 'doc', docId: id });
-}
+function openFolder(id){ nav.push({ screen: 'home', folderId: id }); }
+function openDoc(id){ nav.push({ screen: 'doc', docId: id }); }
 function openOcr(text){
   $('#ocrText').textContent = text || '(no text found)';
   window._ocrText = text;
   nav.push({ screen: 'ocr' });
 }
 
-// In-app back buttons → same path as hardware back
 $('#homeBack').onclick = () => history.back();
 $('#cropBack').onclick = () => history.back();
 $('#editorBack').onclick = () => history.back();
@@ -927,7 +904,7 @@ $('#deleteFolderBtn').onclick=async()=>{
   const inFolder=allDocs.filter(d=>d.folderId===id);
   await Promise.all(inFolder.map(d=>{d.folderId=null;return saveDoc(d)}));
   LS.folders.set(LS.folders.get().filter(f=>f.id!==id));
-  await nav.pop(); // back to home
+  await nav.pop();
   toast('Folder deleted');
 };
 
@@ -997,7 +974,6 @@ async function docMenu(id){
     const ok=await confirmDialog('Delete document?',`"${doc.name}" will be permanently deleted.`);
     if(!ok)return;
     await deleteDoc(id);
-    // If we're viewing this doc, pop from tree
     const top = nav.current();
     if (top.screen === 'doc' && top.docId === id) { await nav.pop(); }
     renderHome(); toast('Deleted');
@@ -1411,13 +1387,10 @@ $('#editorSave').onclick=async()=>{
     else doc.pages.push(page);
     doc.updatedAt = Date.now();
     await saveDoc(doc);
-
     const savedId = doc.id;
     state.currentImage = null; state.currentDoc = null; state.currentPageIndex = -1;
     state.brightness = 0; state.contrast = 0; state.sharpness = 0;
     hideLoader();
-
-    // Replace editor entry in the tree
     await nav.replace({ screen: 'doc', docId: savedId });
     toast('Saved');
   } catch (err) {
@@ -1715,11 +1688,10 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   updateThemeColor();
   renderChips();
 
-  // Fresh nav tree (in-memory only — resets every app launch)
   nav.reset();
   await nav.render();
 
-  // One sentinel so Android back fires popstate instead of exiting
+  // Sentinel: one baseline entry, one to intercept back
   history.replaceState({ app: true }, '');
   pushSentinel();
 
