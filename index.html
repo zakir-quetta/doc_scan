@@ -22,7 +22,7 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:2px;flex-shrink:0;padding:8px 6px;padding-top:calc(8px + env(safe-area-inset-top));background:var(--surface);box-shadow:var(--shadow-top);z-index:10}
 .topbar h1{font-size:16px;font-weight:600;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px;min-width:0;color:var(--text)}
 .topbar .logo{font-size:19px;font-weight:700;letter-spacing:-.02em;text-align:left;padding-left:10px}
-.icon-btn{background:transparent;border:0;color:var(--text);width:42px;height:42px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s ease;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.icon-btn{background:transparent;border:0;color:var(--text);width:42px;height:42px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s ease;flex-shrink:0}
 .icon-btn svg{width:22px;height:22px}
 .icon-btn:active{background:var(--press)}
 .icon-btn.starred{color:var(--star)}
@@ -414,7 +414,6 @@ const nav = {
   stack: [{ screen: 'home', folderId: null }],
   current(){ return this.stack[this.stack.length - 1]; },
   depth(){ return this.stack.length; },
-
   async render(){
     const top = this.current();
     if (!top) return;
@@ -448,7 +447,6 @@ const nav = {
       case 'ocr': showScreenOnly('ocr'); break;
     }
   },
-
   async push(entry){
     const top = this.current();
     if (top && top.screen === entry.screen &&
@@ -457,54 +455,65 @@ const nav = {
     this.stack.push(entry);
     await this.render();
   },
-
   async replace(entry){
     this.stack[this.stack.length - 1] = entry;
     await this.render();
   },
-
   async pop(){
     if (this.stack.length <= 1) return false;
     this.stack.pop();
     await this.render();
     return true;
   },
-
   reset(){ this.stack = [{ screen: 'home', folderId: null }]; }
 };
 
-// ==================== HISTORY SENTINEL ====================
-function pushSentinel(){
-  try { history.pushState({ app: true }, ''); } catch(_) {}
+// ==================== BACK HANDLER ====================
+// Sentinel: always keep exactly one entry on the history stack so popstate
+// fires for every back press. Re-pushed synchronously BEFORE any await so
+// mid-dialog back presses always have something to pop.
+const SENTINEL_STATE = { app: 'sentinel' };
+
+function rearmSentinel(){
+  try { history.pushState(SENTINEL_STATE, ''); } catch(_) {}
 }
 
 let exitArmed = false;
 let exitTimer = null;
-
-// Flag: set to true when the confirm dialog was dismissed by hardware back.
-// The crop/editor branch reads this after the awaited dialog resolves.
-let modalDismissedByBack = false;
+let discardDialogOpen = false;
 
 window.addEventListener('popstate', () => {
-  handleUserBack();
+  // Synchronously rearm so the history stack always has at least one entry,
+  // even if handleBack() awaits a dialog.
+  rearmSentinel();
+  handleBack();
 });
 
-async function handleUserBack(){
+async function handleBack(){
   // 1. Signature pad
   if ($('#sigPad').classList.contains('show')) {
     hideSigPad();
-    pushSentinel();
     return;
   }
 
-  // 2. Modal — dismiss it, mark the flag. Do NOT touch nav here.
+  // 2. Modal open
   if ($('#modal').classList.contains('show')) {
-    modalDismissedByBack = true;
+    const wasDiscard = discardDialogOpen;
     const r = modalResolver;
     modalResolver = null;
     $('#modal').classList.remove('show');
     if (r) r(null);
-    pushSentinel();
+
+    // If the discard dialog was dismissed by back, also leave the crop/editor screen
+    if (wasDiscard) {
+      const cur = nav.current();
+      if (cur && (cur.screen === 'crop' || cur.screen === 'editor')) {
+        cropState.onComplete = null;
+        state.currentImage = null;
+        state.currentDoc = null;
+        await nav.pop();
+      }
+    }
     return;
   }
 
@@ -514,7 +523,6 @@ async function handleUserBack(){
     sheetResolver = null;
     hideSheetUI();
     if (r) r(null);
-    pushSentinel();
     return;
   }
 
@@ -523,7 +531,6 @@ async function handleUserBack(){
     state.selectMode = false;
     state.selected.clear();
     renderHome();
-    pushSentinel();
     return;
   }
 
@@ -533,48 +540,52 @@ async function handleUserBack(){
     $('#searchInput').value = '';
     $('#searchClear').classList.remove('show');
     renderHome();
-    pushSentinel();
     return;
   }
 
   // 6. Crop / editor — show discard dialog
   const top = nav.current();
   if (top.screen === 'crop' || top.screen === 'editor') {
-    pushSentinel();
-    modalDismissedByBack = false;
     const wasCrop = top.screen === 'crop';
-    const ok = await confirmDialog(
-      'Discard this scan?',
-      wasCrop ? 'Your current scan will be lost.' : 'Your changes will be lost.',
-      'Discard'
-    );
-    const shouldLeave = (ok === true) || modalDismissedByBack;
-    modalDismissedByBack = false;
-    if (shouldLeave) {
+    discardDialogOpen = true;
+    const ok = await showModal({
+      title: 'Discard this scan?',
+      msg: wasCrop ? 'Your current scan will be lost.' : 'Your changes will be lost.',
+      okText: 'Discard',
+      danger: true
+    });
+    discardDialogOpen = false;
+
+    // If the modal branch already popped the screen, don't double-pop.
+    const cur = nav.current();
+    if (!cur || (cur.screen !== 'crop' && cur.screen !== 'editor')) return;
+
+    // User tapped Discard → leave
+    if (ok === true) {
       cropState.onComplete = null;
       state.currentImage = null;
       state.currentDoc = null;
       await nav.pop();
     }
+    // User tapped Cancel → stay put
     return;
   }
 
-  // 7. Pop tree
+  // 7. Pop the tree
   if (nav.depth() > 1) {
     await nav.pop();
-    pushSentinel();
     return;
   }
 
-  // 8. Root double-back to exit
+  // 8. At root — double-back to exit
   if (!exitArmed) {
     exitArmed = true;
     clearTimeout(exitTimer);
     exitTimer = setTimeout(() => { exitArmed = false; }, 2000);
     toast('Press back again to exit');
-    pushSentinel();
     return;
   }
+  // Second back at root within 2s → try to close the app
   exitArmed = false;
   try {
     if (navigator.app && navigator.app.exitApp) navigator.app.exitApp();
@@ -1699,8 +1710,10 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   nav.reset();
   await nav.render();
 
-  history.replaceState({ app: true }, '');
-  pushSentinel();
+  // Install two sentinels so we always have one to pop, and one to keep.
+  history.replaceState({ app: 'root' }, '');
+  history.pushState(SENTINEL_STATE, '');
+  history.pushState(SENTINEL_STATE, '');
 
   if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 })();
