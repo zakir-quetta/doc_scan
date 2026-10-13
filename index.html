@@ -29,10 +29,8 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .btn-primary,.btn-secondary,.btn-text,.btn-danger{border:0;cursor:pointer;font-size:15px;font-weight:600;border-radius:12px;padding:12px 18px;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:active{transform:scale(.98)}
-.btn-primary:disabled{opacity:.4}
 .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .btn-secondary:active{background:var(--surface2);transform:scale(.98)}
-.btn-secondary:disabled{opacity:.4}
 .btn-text{background:transparent;color:var(--accent);padding:8px 12px;font-weight:600}
 .btn-text:active{opacity:.7}
 .btn-danger{background:var(--danger);color:#fff}
@@ -161,18 +159,6 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 .sig-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0}
 #sigCanvas{background:#fff;border-radius:12px;touch-action:none;cursor:crosshair;max-width:100%;max-height:100%}
 .sig-foot{padding:16px;display:flex;gap:10px;justify-content:center;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
-
-/* Viewer */
-.viewer-stage{flex:1;display:flex;align-items:center;justify-content:center;background:#0a0a0a;overflow:hidden;min-height:0;position:relative;padding:8px;touch-action:pan-y}
-#viewerImg{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;display:block}
-.viewer-tapzone{position:absolute;top:0;bottom:0;width:25%;z-index:5}
-.viewer-tapzone.left{left:0}
-.viewer-tapzone.right{right:0}
-.viewer-nav{padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);display:flex;gap:10px;flex-shrink:0;border-top:1px solid var(--border)}
-.viewer-nav button{flex:1}
-.viewer-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:4px 10px;border-radius:999px;backdrop-filter:blur(4px);pointer-events:none;transition:opacity .4s ease}
-.viewer-hint.hidden{opacity:0}
-
 @media print{body{background:#fff;padding:0}.screen:not(.active),.fab-row,.doc-actions,.topbar,.search-wrap,.chip-row,.sel-bar,.toast,.overlay,.modal,.loader{display:none!important}.pages-list{display:block!important;padding:0!important}.page-wrap{page-break-after:always;margin:0}.page-thumb{width:100%;height:auto;box-shadow:none;border-radius:0}}
 </style>
 </head>
@@ -289,24 +275,6 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
   </div>
 </section>
 
-<section id="viewerScreen" class="screen">
-  <header class="topbar">
-    <button class="icon-btn" id="viewerBack"></button>
-    <h1 id="viewerTitle">Page 1 of 1</h1>
-    <button class="icon-btn" id="viewerShare"></button>
-  </header>
-  <div class="viewer-stage" id="viewerStage">
-    <img id="viewerImg" alt="">
-    <div class="viewer-tapzone left" id="viewerLeft"></div>
-    <div class="viewer-tapzone right" id="viewerRight"></div>
-    <div class="viewer-hint" id="viewerHint">Swipe or tap sides to navigate</div>
-  </div>
-  <div class="viewer-nav">
-    <button id="viewerPrev" class="btn-secondary">← Prev</button>
-    <button id="viewerNext" class="btn-secondary">Next →</button>
-  </div>
-</section>
-
 <section id="ocrScreen" class="screen">
   <header class="topbar">
     <button class="icon-btn" id="ocrBack"></button>
@@ -356,12 +324,11 @@ html,body{height:100%;width:100%;overflow:hidden;position:fixed;font-family:-app
 <div class="loader" id="loader"><div class="loader-inner"><div class="spinner"></div><div class="loader-text" id="loaderText">Working...</div></div></div>
 
 <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-<input type="file" id="galleryInput" accept="image/*,application/pdf" multiple hidden>
+<input type="file" id="galleryInput" accept="image/*" multiple hidden>
 
 <script src="https://docs.opencv.org/4.x/opencv.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
 // ==================== ICONS ====================
@@ -393,7 +360,6 @@ const ICONS = {
   file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   img:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
   dots:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>',
-  pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h1a1 1 0 0 0 0-2H9v5"/><path d="M14 13h1a1.5 1.5 0 0 1 0 3h-1v-3z"/></svg>',
 };
 function setIcon(el, svg){ if(el) el.innerHTML = svg; }
 
@@ -440,7 +406,6 @@ const state={
   search:'', sort:LS.sort.get(), view:'all',
   signatureImg:null,
 };
-const viewerState={ docId:null, index:0 };
 let viewingDocId=null;
 let currentDocData=null;
 
@@ -480,16 +445,6 @@ const nav = {
       case 'crop': showScreenOnly('crop'); drawCrop(); break;
       case 'editor': showScreenOnly('editor'); renderEditor(); break;
       case 'ocr': showScreenOnly('ocr'); break;
-      case 'viewer': {
-        const doc = await getDoc(viewerState.docId);
-        if (!doc) { this.stack.pop(); return this.render(); }
-        currentDocData = doc;
-        if (viewerState.index >= doc.pages.length) viewerState.index = doc.pages.length - 1;
-        if (viewerState.index < 0) viewerState.index = 0;
-        renderViewer();
-        showScreenOnly('viewer');
-        break;
-      }
     }
   },
   async push(entry){
@@ -552,6 +507,7 @@ async function handleBack(){
     renderHome(); return;
   }
 
+  // Crop/editor: hardware back = discard & go home directly (no dialog)
   const top = nav.current();
   if (top.screen === 'crop' || top.screen === 'editor'){
     cropState.onComplete = null;
@@ -754,7 +710,7 @@ function addLongPress(el, onLong, onShort){
 }
 
 // ==================== Screens ====================
-const screens={home:$('#homeScreen'),crop:$('#cropScreen'),editor:$('#editorScreen'),doc:$('#docScreen'),ocr:$('#ocrScreen'),viewer:$('#viewerScreen')};
+const screens={home:$('#homeScreen'),crop:$('#cropScreen'),editor:$('#editorScreen'),doc:$('#docScreen'),ocr:$('#ocrScreen')};
 function showScreenOnly(name){
   Object.values(screens).forEach(s=>s.classList.remove('active'));
   screens[name]?.classList.add('active');
@@ -874,7 +830,6 @@ function openOcr(text){
 $('#homeBack').onclick = () => history.back();
 $('#docBack').onclick = () => history.back();
 $('#ocrBack').onclick = () => history.back();
-$('#viewerBack').onclick = () => history.back();
 $('#cropBack').onclick = () => confirmDiscard('crop');
 $('#editorBack').onclick = () => confirmDiscard('editor');
 $('#selectBtn').onclick = () => { exitSelect(); };
@@ -1026,34 +981,6 @@ $('#sortBtn').onclick=async()=>{
   state.sort=v; LS.sort.set(v); renderHome(); toast('Sorted');
 };
 
-// ==================== PDF import ====================
-if (window.pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
-
-async function importPdfFile(file){
-  if (!window.pdfjsLib) throw new Error('PDF library not loaded');
-  const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-  const pages = [];
-  const targetWidth = 1600;
-  for (let i = 1; i <= pdf.numPages; i++){
-    const page = await pdf.getPage(i);
-    const baseViewport = page.getViewport({ scale: 1 });
-    const scale = Math.min(3, targetWidth / baseViewport.width);
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(viewport.width);
-    canvas.height = Math.round(viewport.height);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    pages.push({ id: uuid(), dataUrl: canvas.toDataURL('image/jpeg', 0.9) });
-  }
-  return pages;
-}
-
 // ==================== Capture ====================
 function newDoc(){
   const name='Scan '+new Date().toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -1068,10 +995,6 @@ async function handleFile(e){
   const f=e.target.files[0];
   e.target.value='';
   if(!f){state.currentDoc=null;return;}
-  // If user picks a PDF from camera input (unlikely but safe), route to PDF import
-  if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')){
-    return handlePdfImport([f]);
-  }
   const img=await loadImage(f);
   await startCrop(img,resultCanvas=>{
     const ni=new Image();
@@ -1085,32 +1008,21 @@ async function handleFile(e){
     ni.src=resultCanvas.toDataURL('image/jpeg',0.95);
   });
 }
-
 async function handleFiles(e){
   const files=[...e.target.files];
   e.target.value='';
   if(files.length===0){state.currentDoc=null;return;}
-
-  // Split into PDFs and images
-  const pdfs   = files.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-  const images = files.filter(f => !(f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')));
-
-  // Any PDF present → import as a fresh doc (no crop flow)
-  if (pdfs.length > 0) return handlePdfImport(files);
-
-  // Pure images: single image → crop flow; multiple → direct import (current behaviour)
-  if (images.length === 1) return handleSingle(images[0]);
-
-  showLoader(`Importing ${images.length} images...`);
-  for (const f of images){
+  if(files.length===1)return handleSingle(files[0]);
+  showLoader(`Importing ${files.length} images...`);
+  for(const f of files){
     try{
-      const img = await loadImage(f);
-      const c = document.createElement('canvas');
-      const maxDim=1600, scale=Math.min(1, maxDim/Math.max(img.width,img.height));
-      c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+      const img=await loadImage(f);
+      const c=document.createElement('canvas');
+      const maxDim=1600,scale=Math.min(1,maxDim/Math.max(img.width,img.height));
+      c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
       state.currentDoc.pages.push({id:uuid(),dataUrl:c.toDataURL('image/jpeg',0.9)});
-    }catch(err){ console.warn(err); }
+    }catch(err){console.warn(err);}
   }
   state.currentDoc.updatedAt=Date.now();
   await saveDoc(state.currentDoc);
@@ -1119,45 +1031,8 @@ async function handleFiles(e){
   hideLoader();
   await renderHome();
   nav.push({ screen: 'doc', docId: id });
-  toast(`${images.length} pages added`);
+  toast(`${files.length} pages added`);
 }
-
-async function handlePdfImport(files){
-  showLoader('Importing PDF...');
-  try{
-    const doc = state.currentDoc || newDoc();
-    state.currentDoc = null;
-    for (const f of files){
-      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')){
-        const pages = await importPdfFile(f);
-        doc.pages.push(...pages);
-      } else {
-        // Mixed: also add images directly
-        const img = await loadImage(f);
-        const c = document.createElement('canvas');
-        const maxDim=1600, scale=Math.min(1, maxDim/Math.max(img.width,img.height));
-        c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
-        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-        doc.pages.push({id:uuid(),dataUrl:c.toDataURL('image/jpeg',0.9)});
-      }
-    }
-    if (doc.pages.length === 0) { hideLoader(); toast('Empty PDF'); return; }
-    // Name the doc after the first PDF if possible
-    const firstPdf = files.find(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-    if (firstPdf) doc.name = firstPdf.name.replace(/\.pdf$/i, '');
-    doc.updatedAt = Date.now();
-    await saveDoc(doc);
-    hideLoader();
-    await renderHome();
-    nav.push({ screen: 'doc', docId: doc.id });
-    toast(`Imported ${doc.pages.length} page${doc.pages.length>1?'s':''}`);
-  }catch(err){
-    console.error('PDF import error:', err);
-    hideLoader();
-    toast('PDF import failed');
-  }
-}
-
 async function handleSingle(f){
   const img=await loadImage(f);
   await startCrop(img,resultCanvas=>{
@@ -1562,7 +1437,7 @@ function renderPages(doc){
     };
   });
   list.querySelectorAll('.page-wrap').forEach(el=>{
-    el.onclick=()=>{ openViewer(parseInt(el.dataset.idx,10)); };
+    el.onclick=()=>{ viewPageFull(parseInt(el.dataset.idx,10)); };
   });
   let dragIdx=null;
   list.querySelectorAll('.page-wrap').forEach(el=>{
@@ -1585,94 +1460,13 @@ function renderPages(doc){
     });
   });
 }
-
-// ==================== Viewer (PDF/page reader) ====================
-function openViewer(idx){
-  const doc = currentDocData;
-  if (!doc || !doc.pages[idx]) return;
-  viewerState.docId = viewingDocId;
-  viewerState.index = idx;
-  nav.push({ screen: 'viewer' });
+function viewPageFull(idx){
+  const doc=currentDocData;
+  if(!doc||!doc.pages[idx])return;
+  const w=window.open('','_blank');
+  if(!w){toast('Popup blocked');return;}
+  w.document.write(`<html><head><title>${escapeHtml(doc.name)} – Page ${idx+1}</title><style>body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh}img{max-width:100%;max-height:100vh}</style></head><body><img src="${doc.pages[idx].dataUrl}"></body></html>`);
 }
-function renderViewer(){
-  const doc = currentDocData;
-  if (!doc || !doc.pages[viewerState.index]) return;
-  const page = doc.pages[viewerState.index];
-  $('#viewerImg').src = page.dataUrl;
-  $('#viewerTitle').textContent = `Page ${viewerState.index+1} of ${doc.pages.length}`;
-  $('#viewerPrev').disabled = viewerState.index === 0;
-  $('#viewerNext').disabled = viewerState.index === doc.pages.length - 1;
-}
-function viewerPrev(){
-  if (viewerState.index <= 0) return;
-  viewerState.index--;
-  renderViewer();
-}
-function viewerNext(){
-  const doc = currentDocData;
-  if (!doc) return;
-  if (viewerState.index >= doc.pages.length - 1) return;
-  viewerState.index++;
-  renderViewer();
-}
-$('#viewerPrev').onclick = viewerPrev;
-$('#viewerNext').onclick = viewerNext;
-$('#viewerLeft').onclick = viewerPrev;
-$('#viewerRight').onclick = viewerNext;
-setIcon($('#viewerBack'), ICONS.back);
-setIcon($('#viewerShare'), ICONS.share);
-$('#viewerShare').onclick = async ()=>{
-  const doc = currentDocData;
-  if (!doc) return;
-  const page = doc.pages[viewerState.index];
-  if (!page) return;
-  if (!navigator.share) { toast('Sharing not supported'); return; }
-  try {
-    const img = await loadImageFromUrl(page.dataUrl);
-    const c = document.createElement('canvas');
-    c.width = img.width; c.height = img.height;
-    c.getContext('2d').drawImage(img,0,0);
-    const blob = await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));
-    const file = new File([blob], `${doc.name} - page ${viewerState.index+1}.jpg`, {type:'image/jpeg'});
-    if (navigator.canShare && navigator.canShare({files:[file]})) {
-      await navigator.share({ files:[file], title: doc.name });
-    } else {
-      await navigator.share({ title: doc.name, text: `Page ${viewerState.index+1}` });
-    }
-  } catch(e){ if (e.name !== 'AbortError') console.warn(e); }
-};
-// Swipe navigation on the stage
-(function(){
-  const stage = $('#viewerStage');
-  let sx=0, sy=0, tracking=false;
-  stage.addEventListener('touchstart', e => {
-    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; tracking = true;
-  }, {passive:true});
-  stage.addEventListener('touchend', e => {
-    if (!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx;
-    const dy = t.clientY - sy;
-    if (Math.abs(dx) < 50) return;
-    if (Math.abs(dy) > Math.abs(dx)) return;
-    if (dx < 0) viewerNext(); else viewerPrev();
-  }, {passive:true});
-})();
-// Hide hint after a few seconds each time we enter the viewer
-function showViewerHint(){
-  const h = $('#viewerHint');
-  h.classList.remove('hidden');
-  clearTimeout(h._t);
-  h._t = setTimeout(()=>h.classList.add('hidden'), 3000);
-}
-// Trigger hint display whenever the viewer screen becomes active
-const _origShowScreenOnly = showScreenOnly;
-showScreenOnly = function(name){
-  _origShowScreenOnly(name);
-  if (name === 'viewer') showViewerHint();
-};
-
 $('#docStar').onclick=async()=>{
   const d=await getDoc(viewingDocId);
   d.starred=!d.starred;
@@ -1841,8 +1635,6 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   setIcon($('#editorBack'),ICONS.back);
   setIcon($('#docBack'),ICONS.back);
   setIcon($('#ocrBack'),ICONS.back);
-  setIcon($('#viewerBack'),ICONS.back);
-  setIcon($('#viewerShare'),ICONS.share);
   setIcon($('#sortBtn'),ICONS.sort);
   setIcon($('#selectBtn'),ICONS.back);
   enableSheetSwipe();
