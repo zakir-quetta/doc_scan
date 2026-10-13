@@ -469,9 +469,8 @@ const nav = {
 };
 
 // ==================== SENTINEL SYSTEM ====================
-// Every back press fires popstate. We synchronously push 2 fresh sentinels
-// on every popstate so the history stack can NEVER run dry, even if the
-// browser consumes a pop before our handler runs.
+// Every back press fires popstate. Synchronously re-arm sentinels on every
+// popstate so the history stack never runs dry, even under fast double-backs.
 function makeSentinelState(){
   return { app: 'sentinel', t: Date.now(), r: Math.random() };
 }
@@ -489,16 +488,12 @@ function seedSentinels(n){
 
 let exitArmed = false;
 let exitTimer = null;
-let discardDialogOpen = false;
 
 window.addEventListener('popstate', () => {
-  // Synchronous rearm FIRST — before any async work.
   rearmSentinel();
   handleBack();
 });
 
-// Also rearm when the page regains visibility (some browsers clear state on
-// background→foreground transitions).
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) rearmSentinel();
 });
@@ -510,23 +505,12 @@ async function handleBack(){
     return;
   }
 
-  // 2. Modal open
+  // 2. Modal open (any modal — including discard dialog shown by topbar arrow)
   if ($('#modal').classList.contains('show')) {
-    const wasDiscard = discardDialogOpen;
     const r = modalResolver;
     modalResolver = null;
     $('#modal').classList.remove('show');
     if (r) r(null);
-
-    if (wasDiscard) {
-      const cur = nav.current();
-      if (cur && (cur.screen === 'crop' || cur.screen === 'editor')) {
-        cropState.onComplete = null;
-        state.currentImage = null;
-        state.currentDoc = null;
-        await nav.pop();
-      }
-    }
     return;
   }
 
@@ -556,28 +540,14 @@ async function handleBack(){
     return;
   }
 
-  // 6. Crop / editor — show discard dialog
+  // 6. Crop / editor — hardware back = discard & go home directly (no dialog)
+  //    This avoids the race where the second back press on the dialog exits.
   const top = nav.current();
   if (top.screen === 'crop' || top.screen === 'editor') {
-    const wasCrop = top.screen === 'crop';
-    discardDialogOpen = true;
-    const ok = await showModal({
-      title: 'Discard this scan?',
-      msg: wasCrop ? 'Your current scan will be lost.' : 'Your changes will be lost.',
-      okText: 'Discard',
-      danger: true
-    });
-    discardDialogOpen = false;
-
-    const cur = nav.current();
-    if (!cur || (cur.screen !== 'crop' && cur.screen !== 'editor')) return;
-
-    if (ok === true) {
-      cropState.onComplete = null;
-      state.currentImage = null;
-      state.currentDoc = null;
-      await nav.pop();
-    }
+    cropState.onComplete = null;
+    state.currentImage = null;
+    state.currentDoc = null;
+    await nav.pop();
     return;
   }
 
@@ -600,6 +570,20 @@ async function handleBack(){
     if (navigator.app && navigator.app.exitApp) navigator.app.exitApp();
     else window.close();
   } catch(_) {}
+}
+
+// ==================== Discard dialog (used by topbar back arrow only) ====================
+async function confirmDiscard(which){
+  const ok = await confirmDialog(
+    'Discard this scan?',
+    which === 'crop' ? 'Your current scan will be lost.' : 'Your changes will be lost.',
+    'Discard'
+  );
+  if (ok !== true) return;
+  cropState.onComplete = null;
+  state.currentImage = null;
+  state.currentDoc = null;
+  await nav.pop();
 }
 
 // ==================== Modal ====================
@@ -907,10 +891,13 @@ function openOcr(text){
 }
 
 $('#homeBack').onclick = () => history.back();
-$('#cropBack').onclick = () => history.back();
-$('#editorBack').onclick = () => history.back();
 $('#docBack').onclick = () => history.back();
 $('#ocrBack').onclick = () => history.back();
+
+// Crop/editor back ARROW → show confirm dialog (button tap, no history race)
+$('#cropBack').onclick = () => confirmDiscard('crop');
+$('#editorBack').onclick = () => confirmDiscard('editor');
+
 $('#selectBtn').onclick = () => { exitSelect(); };
 
 $('#newFolderBtn').onclick=async()=>{
@@ -1719,8 +1706,6 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   nav.reset();
   await nav.render();
 
-  // Seed a deep buffer of sentinels so the browser never runs out of
-  // same-origin history entries during long sessions.
   history.replaceState({ app: 'root' }, '');
   seedSentinels(5);
 
