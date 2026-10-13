@@ -474,10 +474,6 @@ const nav = {
 };
 
 // ==================== HISTORY SENTINEL ====================
-// We maintain exactly one sentinel entry at the top of history so every
-// back press fires popstate. After handling a back (and staying in-app),
-// we re-push a sentinel. Only the "second back at root" path skips it,
-// which lets the browser exit.
 function pushSentinel(){
   try { history.pushState({ app: true }, ''); } catch(_) {}
 }
@@ -490,20 +486,32 @@ window.addEventListener('popstate', () => {
 });
 
 async function handleUserBack(){
-  // 1. Overlays
+  // 1. Signature pad
   if ($('#sigPad').classList.contains('show')) {
     hideSigPad();
     pushSentinel();
     return;
   }
+
+  // 2. Modal is open → dismiss it AND (if on crop/editor) leave that screen too
   if ($('#modal').classList.contains('show')) {
     const r = modalResolver;
     modalResolver = null;
     $('#modal').classList.remove('show');
     if (r) r(null);
+
+    const top = nav.current();
+    if (top && (top.screen === 'crop' || top.screen === 'editor')) {
+      cropState.onComplete = null;
+      state.currentImage = null;
+      state.currentDoc = null;
+      await nav.pop();
+    }
     pushSentinel();
     return;
   }
+
+  // 3. Bottom sheet
   if ($('#sheetOverlay').classList.contains('show')) {
     const r = sheetResolver;
     sheetResolver = null;
@@ -512,6 +520,8 @@ async function handleUserBack(){
     pushSentinel();
     return;
   }
+
+  // 4. Select mode
   if (state.selectMode) {
     state.selectMode = false;
     state.selected.clear();
@@ -519,6 +529,8 @@ async function handleUserBack(){
     pushSentinel();
     return;
   }
+
+  // 5. Search
   if (state.search) {
     state.search = '';
     $('#searchInput').value = '';
@@ -528,11 +540,10 @@ async function handleUserBack(){
     return;
   }
 
-  // 2. Crop / editor: confirm discard
+  // 6. Crop / editor — show discard dialog
   const top = nav.current();
   if (top.screen === 'crop' || top.screen === 'editor') {
-    // Re-arm sentinel BEFORE awaiting the dialog, so back presses while
-    // the dialog is showing still have something to intercept.
+    // Re-arm sentinel BEFORE awaiting so the dialog's own back works.
     pushSentinel();
     const wasCrop = top.screen === 'crop';
     const ok = await confirmDialog(
@@ -540,7 +551,10 @@ async function handleUserBack(){
       wasCrop ? 'Your current scan will be lost.' : 'Your changes will be lost.',
       'Discard'
     );
-    if (ok) {
+    // Only pop if the user explicitly tapped Discard.
+    // If they tapped Cancel (null) → stay. If they pressed back → the modal
+    // branch above already popped.
+    if (ok === true) {
       cropState.onComplete = null;
       state.currentImage = null;
       state.currentDoc = null;
@@ -549,14 +563,14 @@ async function handleUserBack(){
     return;
   }
 
-  // 3. Any other screen: pop the tree
+  // 7. Any other screen → pop the tree
   if (nav.depth() > 1) {
     await nav.pop();
     pushSentinel();
     return;
   }
 
-  // 4. At root — double back to exit
+  // 8. At root — double back to exit
   if (!exitArmed) {
     exitArmed = true;
     clearTimeout(exitTimer);
@@ -565,13 +579,11 @@ async function handleUserBack(){
     pushSentinel();
     return;
   }
-  // Second back — allow exit
   exitArmed = false;
   try {
     if (navigator.app && navigator.app.exitApp) navigator.app.exitApp();
     else window.close();
   } catch(_) {}
-  // No pushSentinel — the browser is free to close the app.
 }
 
 // ==================== Modal ====================
@@ -724,7 +736,7 @@ function enableSheetSwipe(){
   });
 }
 
-// ==================== Signature Pad (overlay) ====================
+// ==================== Signature Pad ====================
 const sigPad=$('#sigPad'), sigCanvas=$('#sigCanvas');
 let sigCtx=null, sigDrawing=false, sigDirty=false;
 function resizeSigCanvas(){
@@ -1400,7 +1412,7 @@ $('#editorSave').onclick=async()=>{
   }
 };
 
-// ==================== Signature pad handlers ====================
+// ==================== Signature pad ====================
 setIcon($('#sigBtn'),ICONS.pencil);
 $('#sigBtn').onclick = () => showSigPad();
 $('#sigClose').onclick = () => hideSigPad();
@@ -1691,7 +1703,6 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   nav.reset();
   await nav.render();
 
-  // Sentinel: one baseline entry, one to intercept back
   history.replaceState({ app: true }, '');
   pushSentinel();
 
