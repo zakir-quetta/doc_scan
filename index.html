@@ -468,14 +468,23 @@ const nav = {
   reset(){ this.stack = [{ screen: 'home', folderId: null }]; }
 };
 
-// ==================== BACK HANDLER ====================
-// Sentinel: always keep exactly one entry on the history stack so popstate
-// fires for every back press. Re-pushed synchronously BEFORE any await so
-// mid-dialog back presses always have something to pop.
-const SENTINEL_STATE = { app: 'sentinel' };
-
+// ==================== SENTINEL SYSTEM ====================
+// Every back press fires popstate. We synchronously push 2 fresh sentinels
+// on every popstate so the history stack can NEVER run dry, even if the
+// browser consumes a pop before our handler runs.
+function makeSentinelState(){
+  return { app: 'sentinel', t: Date.now(), r: Math.random() };
+}
 function rearmSentinel(){
-  try { history.pushState(SENTINEL_STATE, ''); } catch(_) {}
+  try {
+    history.pushState(makeSentinelState(), '');
+    history.pushState(makeSentinelState(), '');
+  } catch(_) {}
+}
+function seedSentinels(n){
+  for (let i = 0; i < n; i++){
+    try { history.pushState(makeSentinelState(), ''); } catch(_) {}
+  }
 }
 
 let exitArmed = false;
@@ -483,10 +492,15 @@ let exitTimer = null;
 let discardDialogOpen = false;
 
 window.addEventListener('popstate', () => {
-  // Synchronously rearm so the history stack always has at least one entry,
-  // even if handleBack() awaits a dialog.
+  // Synchronous rearm FIRST — before any async work.
   rearmSentinel();
   handleBack();
+});
+
+// Also rearm when the page regains visibility (some browsers clear state on
+// background→foreground transitions).
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) rearmSentinel();
 });
 
 async function handleBack(){
@@ -504,7 +518,6 @@ async function handleBack(){
     $('#modal').classList.remove('show');
     if (r) r(null);
 
-    // If the discard dialog was dismissed by back, also leave the crop/editor screen
     if (wasDiscard) {
       const cur = nav.current();
       if (cur && (cur.screen === 'crop' || cur.screen === 'editor')) {
@@ -556,22 +569,19 @@ async function handleBack(){
     });
     discardDialogOpen = false;
 
-    // If the modal branch already popped the screen, don't double-pop.
     const cur = nav.current();
     if (!cur || (cur.screen !== 'crop' && cur.screen !== 'editor')) return;
 
-    // User tapped Discard → leave
     if (ok === true) {
       cropState.onComplete = null;
       state.currentImage = null;
       state.currentDoc = null;
       await nav.pop();
     }
-    // User tapped Cancel → stay put
     return;
   }
 
-  // 7. Pop the tree
+  // 7. Pop tree
   if (nav.depth() > 1) {
     await nav.pop();
     return;
@@ -585,7 +595,6 @@ async function handleBack(){
     toast('Press back again to exit');
     return;
   }
-  // Second back at root within 2s → try to close the app
   exitArmed = false;
   try {
     if (navigator.app && navigator.app.exitApp) navigator.app.exitApp();
@@ -1710,10 +1719,10 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?
   nav.reset();
   await nav.render();
 
-  // Install two sentinels so we always have one to pop, and one to keep.
+  // Seed a deep buffer of sentinels so the browser never runs out of
+  // same-origin history entries during long sessions.
   history.replaceState({ app: 'root' }, '');
-  history.pushState(SENTINEL_STATE, '');
-  history.pushState(SENTINEL_STATE, '');
+  seedSentinels(5);
 
   if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 })();
