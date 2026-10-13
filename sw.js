@@ -1,4 +1,4 @@
-const CACHE = 'scanner-v14';
+const CACHE = 'scanner-v15';
 const ASSETS = [
   './',
   './index.html',
@@ -25,5 +25,5 @@ self.addEventListener('fetch', e => {
   if (url.includes('cdn.jsdelivr.net') || url.includes('docs.opencv.org') || url.includes('cdnjs.cloudflare.com')) {
     return;
   }
-  e.respondWith(caches.match(e.request).then(r => r || fetch(r)));
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
